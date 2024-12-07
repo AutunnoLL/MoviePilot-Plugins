@@ -315,7 +315,7 @@ class MediaSyncDel2(_PluginBase):
                                             'text': '关于路径映射（转移后文件路径）：'
                                                     'emby:/data/A.mp4,'
                                                     'moviepilot:/mnt/link/A.mp4。'
-                                                    '路径映射填/data:/mnt/link。'
+                                                    '路径映射填/data->/mnt/link。用->分割两种路径'
                                                     '不正确配置会导致查询不到转移记录！（路径一样可不填）'
                                         }
                                     }
@@ -619,6 +619,7 @@ class MediaSyncDel2(_PluginBase):
                                          })
             return
 
+        logger.warn(f"webhook method got tmdb id is {tmdb_id}")
         # 兼容emby webhook season删除没有发送tmdbid
         if not tmdb_id and str(media_type) != 'Season' and str(media_type) != 'Episode':
             logger.error(f"{media_name} 同步删除失败，未获取到TMDB ID，请检查媒体库媒体是否刮削")
@@ -698,6 +699,7 @@ class MediaSyncDel2(_PluginBase):
                                          })
             return
 
+        logger.warn(f"plugin method got tmdb id is {tmdb_id}")
         if not tmdb_id or not str(tmdb_id).isdigit():
             logger.error(f"{media_name} 同步删除失败，未获取到TMDB ID，请检查媒体库媒体是否刮削")
             return
@@ -747,7 +749,8 @@ class MediaSyncDel2(_PluginBase):
         if not media_type:
             logger.error(f"{media_name} 同步删除失败，未获取到媒体类型，请检查媒体是否刮削")
             return
-
+        
+        logger.warn(f"emby path is {media_path}")
         # 处理路径映射 (处理同一媒体多分辨率的情况),换成->处理windows路径
         if self._library_path:
             paths = self._library_path.split("\n")
@@ -756,7 +759,8 @@ class MediaSyncDel2(_PluginBase):
                 if len(sub_paths) < 2:
                     continue
                 media_path = media_path.replace(sub_paths[0], sub_paths[1]).replace('\\', '/')
-
+            logger.warn(f"query path is {media_path}")
+                        
         # 兼容重新整理的场景
         if Path(media_path).exists():
             logger.warn(f"转移路径 {media_path} 未被删除或重新生成，跳过处理")
@@ -927,7 +931,7 @@ class MediaSyncDel2(_PluginBase):
             msg = f'剧集 {media_name} S{season_num} {tmdb_id}'
             if tmdb_id and str(tmdb_id).isdigit():
                 # 根据tmdb_id查询转移记录
-                transfer_history: List[TransferHistory] = self._transferhis.get_by(dest=media_path,
+                transfer_history: List[TransferHistory] = self._transferhis.get_by(tmdbid=tmdb_id,
                                                                                    mtype=mtype.value,
                                                                                    season=f'S{season_num}')
             else:
@@ -941,7 +945,8 @@ class MediaSyncDel2(_PluginBase):
                 logger.error(f"{media_name} 集同步删除失败，未获取到具体集")
                 return
             msg = f'剧集 {media_name} S{season_num}E{episode_num} {tmdb_id}'
-            transfer_history: List[TransferHistory] = self._transferhis.get_by(mtype=mtype.value,
+            transfer_history: List[TransferHistory] = self._transferhis.get_by(tmdbid=tmdb_id,
+                                                                               mtype=mtype.value,
                                                                                season=f'S{season_num}',
                                                                                episode=f'E{episode_num}',
                                                                                dest=media_path)
