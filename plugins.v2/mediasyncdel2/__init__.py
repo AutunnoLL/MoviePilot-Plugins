@@ -17,21 +17,21 @@ from app.plugins import _PluginBase
 from app.schemas.types import NotificationType, EventType, MediaType, MediaImageType
 
 
-class MediaSyncDel(_PluginBase):
+class MediaSyncDel2(_PluginBase):
     # 插件名称
-    plugin_name = "媒体文件同步删除"
+    plugin_name = "媒体文件同步删除(自用)"
     # 插件描述
     plugin_desc = "同步删除历史记录、源文件和下载任务。"
     # 插件图标
     plugin_icon = "mediasyncdel.png"
     # 插件版本
-    plugin_version = "1.8.7"
+    plugin_version = "1.1"
     # 插件作者
-    plugin_author = "thsrite"
+    plugin_author = "lyf"
     # 作者主页
-    author_url = "https://github.com/thsrite"
+    author_url = "https://github.com/Autunno"
     # 插件配置项ID前缀
-    plugin_config_prefix = "mediasyncdel_"
+    plugin_config_prefix = "mediasyncdel2_"
     # 加载顺序
     plugin_order = 9
     # 可使用的用户级别
@@ -519,7 +519,7 @@ class MediaSyncDel(_PluginBase):
                             },
                             'events': {
                                 'click': {
-                                    'api': 'plugin/MediaSyncDel/delete_history',
+                                    'api': 'plugin/MediaSyncDel2/delete_history',
                                     'method': 'get',
                                     'params': {
                                         'key': unique,
@@ -620,7 +620,7 @@ class MediaSyncDel(_PluginBase):
             return
 
         # 兼容emby webhook season删除没有发送tmdbid
-        if not tmdb_id and str(media_type) != 'Season':
+        if not tmdb_id and str(media_type) != 'Season' and str(media_type) != 'Episode':
             logger.error(f"{media_name} 同步删除失败，未获取到TMDB ID，请检查媒体库媒体是否刮削")
             return
 
@@ -748,11 +748,11 @@ class MediaSyncDel(_PluginBase):
             logger.error(f"{media_name} 同步删除失败，未获取到媒体类型，请检查媒体是否刮削")
             return
 
-        # 处理路径映射 (处理同一媒体多分辨率的情况)
+        # 处理路径映射 (处理同一媒体多分辨率的情况),换成->处理windows路径
         if self._library_path:
             paths = self._library_path.split("\n")
             for path in paths:
-                sub_paths = path.split(":")
+                sub_paths = path.split("->",1)
                 if len(sub_paths) < 2:
                     continue
                 media_path = media_path.replace(sub_paths[0], sub_paths[1]).replace('\\', '/')
@@ -927,7 +927,7 @@ class MediaSyncDel(_PluginBase):
             msg = f'剧集 {media_name} S{season_num} {tmdb_id}'
             if tmdb_id and str(tmdb_id).isdigit():
                 # 根据tmdb_id查询转移记录
-                transfer_history: List[TransferHistory] = self._transferhis.get_by(tmdbid=tmdb_id,
+                transfer_history: List[TransferHistory] = self._transferhis.get_by(dest=media_path,
                                                                                    mtype=mtype.value,
                                                                                    season=f'S{season_num}')
             else:
@@ -941,8 +941,7 @@ class MediaSyncDel(_PluginBase):
                 logger.error(f"{media_name} 集同步删除失败，未获取到具体集")
                 return
             msg = f'剧集 {media_name} S{season_num}E{episode_num} {tmdb_id}'
-            transfer_history: List[TransferHistory] = self._transferhis.get_by(tmdbid=tmdb_id,
-                                                                               mtype=mtype.value,
+            transfer_history: List[TransferHistory] = self._transferhis.get_by(mtype=mtype.value,
                                                                                season=f'S{season_num}',
                                                                                episode=f'E{episode_num}',
                                                                                dest=media_path)
